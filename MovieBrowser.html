@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="description" content="MovieBrowser">
+<meta name="keywords" content="Movie,Browser,IMDB,Hard drive">
+<meta name="author" content="Sampreet Sharma">
+<meta charset="UTF-8">
+</head>
+<style type="text/css">
+	.list {
+		width: 500px;
+		font-family: Georgia, Times, serif;
+		font-size: 15px;
+	}
+	
+	.list ul {
+		list-style: none;
+	}
+	
+	.list ul li {}
+	/* Every list item is an anchor which will expand collapse */
+	.list ul li a {
+		display: block;
+		text-decoration: none;
+		color: #000000;
+		background-color: #FFFFFF;
+		line-height: 30px;
+		border-style: solid;
+		border-width: 3px;
+		border-color: #0092F3;
+		padding-left: 10px;
+		cursor: pointer;
+		padding-right: 10px;
+		border-radius: 5px;
+	}
+	.list ul li a:hover {
+		color: #FFFFFF;
+		background-color: #0092F3;
+		background-repeat: repeat-x;
+	}
+	.list ul li a strong {
+		margin-right: 10px;
+	}
+	/* Movie list item will have a tranparant background */
+	.movie {
+		background: rgba(255, 255, 255, 0.65);
+	}
+	.movieElement {
+		background-color: #ffffff;
+		color: #000000;
+	}
+	/* Hide the 'No files chosen' text */
+	.custom-file-input::-webkit-file-upload-button {
+		visibility: hidden;
+	}
+	.custom-file-input::before {
+		content: 'Select folder';
+		display: block;
+		background: -webkit-linear-gradient(top, #22b922, #22b322);
+		border: 1px solid #999;
+		border-radius: 20px;
+		padding: 5px;
+		outline: none;
+		white-space: nowrap;
+		-webkit-user-select: none;
+		cursor: pointer;
+		font-weight: 700;
+		font-size: 10pt;
+		color: white;
+		font-family: Georgia, Times, serif;
+		text-align: center;
+	}
+	.custom-file-input:hover::before {
+		border-color: green;
+	}
+	.custom-file-input:hover {
+		cursor: pointer;
+	}
+	input[type='file'] {
+		color: transparent;
+	}
+	/* Error, info and sucess message CSS */
+	.error {
+		border: 1px solid;
+		margin: 10px 0px;
+		margin-right: 200px;
+		margin-left: 200px;
+		padding: 15px 10px 15px 50px;
+		background-repeat: no-repeat;
+		background-position: 10px center;
+		color: #D8000C;
+		background-color: #FFBABA;
+		visibility: hidden;
+		display: none;
+	}
+	.info {
+		border: 1px solid;
+		margin: 10px 0px;
+		margin-right: 200px;
+		margin-left: 200px;
+		padding: 15px 10px 15px 50px;
+		background-repeat: no-repeat;
+		background-position: 10px center;
+		color: #00529B;
+		background-color: #BDE5F8;
+		visibility: hidden;
+		display: none;
+	}
+	.success {
+		border: 1px solid;
+		margin: 10px 0px;
+		margin-right: 100px;
+		margin-left: 100px;
+		padding: 15px 10px 15px 50px;
+		background-repeat: no-repeat;
+		background-position: 10px center;
+		color: #4F8A10;
+		background-color: #DFF2BF;
+	}
+	/* Background image is fixed to width and wont change on resize */
+	body {
+		background: url('Background poster.jpg') no-repeat center center fixed;
+		-webkit-background-size: cover;
+		-moz-background-size: cover;
+		-o-background-size: cover;
+		background-size: cover;
+	}
+</style>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
+</script>
+<script type="text/javascript">
+	// Global variables
+	var MovieDetails;
+	var GenreMovieMapping;
+	var ActorsMovieMapping;
+	var DirectorMovieMapping;
+	var movieFailCount;
+	var noOfFiles;
+	var movieFail;
+	var FileNameProcessed;
+
+	// Expand collapse a list
+	function expandCollapse(e) {
+		$(e).parent().find("ul").toggle();
+	}
+
+	// Clear screen of previous operations
+	function clearScreen() {
+		document.getElementById("errorMessage").innerHTML = "";
+		document.getElementById("errorMessage").style.visibility = "hidden";
+		document.getElementById("errorMessage").style.display = "none";
+		document.getElementById("infoMessage").innerHTML = "";
+		document.getElementById("infoMessage").style.visibility = "hidden";
+		document.getElementById("infoMessage").style.display = "none";
+		document.getElementById("movieList").innerHTML = "";
+		document.getElementById("GenreList").innerHTML = "";
+		document.getElementById("ActorsList").innerHTML = "";
+		document.getElementById("DirectorList").innerHTML = "";
+		//$("#loading").hide();
+	}
+
+	// Check if a "*/folder" or "file" was processed.
+	function fileNameProcessed(fileName) {
+		var temp;
+		for (temp in FileNameProcessed) {
+			if (fileName.indexOf(temp) == 0) {
+				return "True";
+			}
+		}
+		return "False";
+	}
+
+	function pathvalue(e) {
+		// Reset screen
+		clearScreen();
+		
+		// Show loading GIF
+		//$("#loading").show();
+		
+		// Initialize dictionaries
+		MovieDetails = {};
+		GenreMovieMapping = {};
+		ActorsMovieMapping = {};
+		DirectorMovieMapping = {};
+		movieFail = {};
+		movieFailCount = 0;
+		FileNameProcessed = {};
+		
+		// Chrome returns all files in the directory and sub-directories. Can hang the browser if there are too many files.
+		var files = e.target.files;
+		var str;
+		var key;
+		var tempMovie;
+		var noOfFiles = 0;
+		for (var i = 0, file; i < files.length; i++) {
+			file = files[i];
+			// If its a folder then just process "*/folder/." and ignore the rest of the files in the folder.
+			if (fileNameProcessed(file.webkitRelativePath) == "False") {
+				getMovieName(file.webkitRelativePath);
+			}
+		}
+		noOfFiles = Object.keys(FileNameProcessed).length;
+		// If no movies were identified then display the message and return
+		if (Object.keys(MovieDetails).length <= 0 && noOfFiles != 0) {
+			if (movieFailCount != 0) {
+				str = "<ul style=\"list-style:none\">";
+				for (key in movieFail) {
+					str = str + "<li>" + key + "</li>";
+				}
+				str = str + "</ul>";
+				document.getElementById("infoMessage").innerHTML = "Couldn't fetch the data for the below movies. Try renaming them." + str;
+				document.getElementById("infoMessage").style.visibility = "visible";
+				document.getElementById("infoMessage").style.display = "block";
+				//$("#loading").hide();
+			}
+			return;
+		}
+		// If its an empty folder
+		if (noOfFiles == 0 && Object.keys(MovieDetails).length <= 0) {
+			document.getElementById("errorMessage").innerHTML = "There are no movies in this folder!";
+			document.getElementById("errorMessage").style.visibility = "visible";
+			document.getElementById("errorMessage").style.display = "block";
+			//$("#loading").hide();
+			return;
+		}
+		// Every list item will have "expandCollapse"
+		// All movie list
+		str = "<ul><li><a onclick=\"expandCollapse(this)\"><strong>All movie list</strong><span style=\"float:right\">" + Object.keys(MovieDetails).length + " / " + noOfFiles + "</span></a><ul class=\"list\" style=\"display: none\">";
+		for (key in MovieDetails) {
+			str = str + outputMovie(key);
+		}
+		str = str + "</ul></li></ul>";
+		document.getElementById("movieList").innerHTML = str;
+		// Make the DIV visible
+		document.getElementById("movieList").display = "block";
+		
+		// Genre
+		str = "<ul><li><a onclick=\"expandCollapse(this)\"><strong>Genre</strong><span style=\"float:right\">" + Object.keys(GenreMovieMapping).length + "</span></a><ul class=\"list\" style=\"display: none\">";
+		for (key in GenreMovieMapping) {
+			// The genre list is a list of genres and each list-of-genre-type is a list of movies.
+			str = str + "<li><a onclick=\"expandCollapse(this)\"><strong>" + key + "</strong><span style=\"float:right\">" + GenreMovieMapping[key].length + "</span></a><ul class=\"list\">";
+			tempMovie = GenreMovieMapping[key];
+			for (i = 0; i < tempMovie.length; i++) {
+				str = str + outputMovie(tempMovie[i]);
+			}
+			str = str + "</li></ul>";
+		}
+		str = str + "</ul></li></ul>";
+		document.getElementById("GenreList").innerHTML = str;
+		// Make the DIV visible
+		document.getElementById("GenreList").display = "block";
+		
+		// Actors
+		str = "<ul><li><a onclick=\"expandCollapse(this)\"><strong>Actors</strong><span style=\"float:right\">" + Object.keys(ActorsMovieMapping).length + "</span></a><ul class=\"list\" style=\"display: none\">";
+		for (key in ActorsMovieMapping) {
+			// The actor list is a list of actors and each list-of-actor-name is a list of movies.
+			str = str + "<li><a onclick=\"expandCollapse(this)\"><strong>" + key + "</strong><span style=\"float:right\">" + ActorsMovieMapping[key].length + "</span></a><ul class=\"list\">";
+			tempMovie = ActorsMovieMapping[key];
+			for (i = 0; i < tempMovie.length; i++) {
+				str = str + outputMovie(tempMovie[i]);
+			}
+			str = str + "</li></ul>";
+		}
+		str = str + "</ul></li></ul>";
+		document.getElementById("ActorsList").innerHTML = str;
+		// Make the DIV visible
+		document.getElementById("ActorsList").display = "block";
+		
+		// Director
+		str = "<ul><li><a onclick=\"expandCollapse(this)\"><strong>Director</strong><span style=\"float:right\">" + Object.keys(DirectorMovieMapping).length + "</span></a><ul class=\"list\" style=\"display: none\">";
+		for (key in DirectorMovieMapping) {
+			// The director list is a list of directors and each list-of-director-name is a list of movies.
+			str = str + "<li><a onclick=\"expandCollapse(this)\"><strong>" + key + "</strong><span style=\"float:right\">" + DirectorMovieMapping[key].length + "</span></a><ul class=\"list\">";
+			tempMovie = DirectorMovieMapping[key];
+			for (i = 0; i < tempMovie.length; i++) {
+				str = str + outputMovie(tempMovie[i]);
+			}
+			str = str + "</li></ul>";
+		}
+		str = str + "</ul></li></ul>";
+		document.getElementById("DirectorList").innerHTML = str;
+		// Make the DIV visible
+		document.getElementById("DirectorList").display = "block";
+		
+		if (movieFailCount != 0) {
+			str = "<ul style=\"list-style:none\">";
+			for (key in movieFail) {
+				str = str + "<li>" + key + "</li>";
+			}
+			str = str + "</ul>";
+			document.getElementById("infoMessage").innerHTML = "Couldn't fetch the data for the below movies. Try renaming them." + str;
+			document.getElementById("infoMessage").style.visibility = "visible";
+			// Make the DIV visible
+			document.getElementById("infoMessage").style.display = "block";
+			//$("#loading").hide();
+		}
+		
+		// Remove loading GIF
+		//$("#loading").hide();
+	}
+
+	// Determine movie name and process
+	function getMovieName(fileName) {
+		var res = fileName.split("/");
+		// Chrome file list is of the form:
+		// Case 1: MovieFolder/. 						(when a Drive is selected OR when there is a single folder in the parentFolder)
+		// Case 2: parentFolder/MovieFolder/. 			(when parentFolder is selected)
+		// Case 3: MovieFileName.extension 				(when a Drive is selected)
+		// Case 4: parentFolder/MovieFileName.extension	(when parentFolder is selected)
+		// Add to FileNameProcessed to dictionary
+		if (res[1] == "." && res[2] === undefined) {
+			if (res[0].toUpperCase() == "$RECYCLE.BIN" || res[0].toUpperCase() == "SYSTEM VOLUME INFORMATION") {
+				return;
+			}
+			processMovieName(res[0]);
+			FileNameProcessed[res[0]] = "";
+		} else if (res[2] == ".") {
+			processMovieName(res[1]);
+			FileNameProcessed[res[0] + "/" + res[1]] = "";
+		} else if (res[2] === undefined && res[1] === undefined) {
+			processMovieName(res[0].slice(0, res[0].lastIndexOf(".")));
+			FileNameProcessed[res[0]] = "";
+		} else if (res[2] === undefined && res[1] !== undefined && res[1] != ".") {
+			processMovieName(res[1].slice(0, res[1].lastIndexOf(".")));
+			FileNameProcessed[res[0] + "/" + res[1]] = "";
+		}
+	}
+
+	// Extract the movie name
+	// This is based on general torrent / naming conventions
+	function processMovieName(movieName) {
+		// Ignore everything post:
+		// 720 1080 x264; 300MB 700MB
+		// DVD BR WEB RIP BLURAY DVDr
+		// (YYYY)
+		// Get leftmost index and ignore the rest of the text.
+		
+		var fileName = movieName;
+		var res = /(720p|1080p|x264)/;
+		var fileSize = /([1-9]00MB)/;
+		var fileType = /(([dD][vV][dD]|[bB][rR]|[wW][eE][bB])[rR][iI][pP]|[bB][lL][uU][rR][aA][yY]|[dD][vV][dD][rR])/;
+		var year = /([\[\(\{\. ][12][0-9][0-9][0-9][\]\)\}\. ])/;
+		var others;
+		var leftMostIndex = 999;
+		var temp = 999;
+		temp = movieName.search(res);
+		if (temp != -1 && temp < leftMostIndex) {
+			leftMostIndex = temp;
+			temp = 999;
+		}
+		temp = movieName.search(fileSize);
+		if (temp != -1 && temp < leftMostIndex) {
+			leftMostIndex = temp;
+			temp = 999;
+		}
+		temp = movieName.search(fileType);
+		if (temp != -1 && temp < leftMostIndex) {
+			leftMostIndex = temp;
+			temp = 999;
+		}
+		temp = movieName.search(year);
+		if (temp != -1 && temp < leftMostIndex) {
+			leftMostIndex = temp;
+			temp = 999;
+		}
+		// Ignore text to the right
+		if (leftMostIndex != 999) {
+			movieName = movieName.slice(0, leftMostIndex);
+			movieName = movieName.trim();
+		}
+		var withPeriodsMovieName = "";
+		withPeriodsMovieName = movieName;
+		// Some movie name are of the form - Up.In.The.Air
+		movieName = movieName.split(".").join(" ")
+		movieName = movieName.trim();
+		// If IMDB data fails with "." removal then try with it (as in the case of L.A. Confedential)
+		if (getIMDBData(movieName) == "False") {
+			if (getIMDBData(withPeriodsMovieName) == "False") {
+				movieFail[fileName] = "";
+			}
+		}
+	}
+
+	// Use omdbapi.com to get the required data
+	// IMDB has protection againt bandwidth theft - so posters cant be shown as of now
+	function getIMDBData(MovieName) {
+		// Send Request
+		var http = new XMLHttpRequest();
+		http.open("GET", "http://www.omdbapi.com/?t=" + MovieName, false);
+		http.send(null);
+		// Response to JSON
+		var omdbData = http.responseText;
+		var omdbJSON = eval("(" + omdbData + ")");
+		if (omdbJSON.Response == "False" && omdbJSON.Title === undefined) {
+			movieFailCount = movieFailCount + 1;
+			return "False";
+		} else if (!(omdbJSON.Title in MovieDetails) && !(isNaN(omdbJSON.imdbRating))) {
+			MovieDetails[omdbJSON.Title] = new Array(
+				omdbJSON.Poster,
+				omdbJSON.Genre,
+				omdbJSON.Year,
+				omdbJSON.imdbRating,
+				omdbJSON.Director,
+				omdbJSON.Actors
+			);
+			prepareMappings(omdbJSON);
+			return "True";
+		} else if (isNaN(omdbJSON.imdbRating)) {
+			return "False";
+		} else {
+			return "True";
+		}
+	}
+
+	// Prepare genre, actor and director lists
+	function prepareMappings(MovieJSON) {
+		var i;
+		var GenreList;
+		GenreList = MovieJSON.Genre.split(",");
+		for (i = 0; i < GenreList.length; i++) {
+			if (!(GenreList[i] in GenreMovieMapping)) {
+				GenreMovieMapping[GenreList[i]] = new Array(MovieJSON.Title);
+			} else {
+				GenreMovieMapping[GenreList[i]].push(MovieJSON.Title);
+			}
+		}
+		var ActorsList;
+		ActorsList = MovieJSON.Actors.split(",");
+		for (i = 0; i < ActorsList.length; i++) {
+			if (!(ActorsList[i] in ActorsMovieMapping)) {
+				ActorsMovieMapping[ActorsList[i]] = new Array(MovieJSON.Title);
+			} else {
+				ActorsMovieMapping[ActorsList[i]].push(MovieJSON.Title);
+			}
+		}
+		var DirectorList;
+		DirectorList = MovieJSON.Director.split(",");
+		for (i = 0; i < DirectorList.length; i++) {
+			if (!(DirectorList[i] in DirectorMovieMapping)) {
+				DirectorMovieMapping[DirectorList[i]] = new Array(MovieJSON.Title);
+			} else {
+				DirectorMovieMapping[DirectorList[i]].push(MovieJSON.Title);
+			}
+		}
+	}
+
+	// A movie output
+	function outputMovie(movieName) {
+		var str;
+		str = "";
+		var movieDataStr;
+		movieDataStr = "";
+		if (movieName in MovieDetails) {
+			// movieDataStr = "<p><img align=\"left\" width=130  height=205 src=\"" + MovieDetails[movieName][0] + "\">Title: " + movieName + "</br>" + "Genre: " + MovieDetails[movieName][1] + "</br>" + "Year: " + MovieDetails[movieName][2] + "</br>" + "imdbRating: " + MovieDetails[movieName][3] + "</br>" + "Director: " + MovieDetails[movieName][4] + "</br>" + "Actors: " + MovieDetails[movieName][5] + "<br clear=\"left\">" + "</p>"
+			movieDataStr = "<p class=\"movie\"><span class=\"movieElement\">Title: " + movieName + "</span></br>" + "<span class=\"movieElement\">Genre: " + MovieDetails[movieName][1] + "</span></br>" + "<span class=\"movieElement\">Year: " + MovieDetails[movieName][2] + "</span></br>" + "<span class=\"movieElement\">imdbRating: " + MovieDetails[movieName][3] + "</span></br>" + "<span class=\"movieElement\">Director: " + MovieDetails[movieName][4] + "</span></br>" + "<span class=\"movieElement\">Actors: " + MovieDetails[movieName][5] + "</span><br clear=\"left\">" + "</p>"
+			str = "<li><a onclick=\"expandCollapseMovie(this)\"><strong>" + movieName + "</strong><span style=\"float:right\"> Year: " + MovieDetails[movieName][2] + " IMDB: " + MovieDetails[movieName][3] + "</span></a><div style=\"display:none\">" + movieDataStr + "</div></li>";
+		}
+		return str;
+	}
+
+	// Expand collpase for a movie list item
+	function expandCollapseMovie(e) {
+		if ($(e).parent().find("div").css("display") == "none") {
+			$(e).parent().find("div").css({
+				display: "block"
+			});
+		} else {
+			$(e).parent().find("div").css({
+				display: "none"
+			});
+		}
+	}
+</script>
+
+<body>
+	<!-- FB Share Button -->
+	<div id="fb-root"></div>
+	<script>
+		(function (d, s, id) {
+			var js, fjs = d.getElementsByTagName(s)[0];
+			if (d.getElementById(id)) return;
+			js = d.createElement(s);
+			js.id = id;
+			js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+			fjs.parentNode.insertBefore(js, fjs);
+		}(document, 'script', 'facebook-jssdk'));
+	</script>
+	<!-- Twitter Share Button -->
+	<script>
+		! function (d, s, id) {
+			var js, fjs = d.getElementsByTagName(s)[0];
+			if (!d.getElementById(id)) {
+				js = d.createElement(s);
+				js.id = id;
+				js.src = "https://platform.twitter.com/widgets.js";
+				fjs.parentNode.insertBefore(js, fjs);
+			}
+		}(document, "script", "twitter-wjs");
+	</script>
+	</br>
+	</br>
+	<center>
+		<div class="success" id="welcomeMessage">
+			Welcome to Movie Browser!</br>
+			Now browse your local drive movies based on IMDB Rating, Genre, Actors and Director.</br>
+			Select your movie folder, wait and it will do its best to recognize and categorize your movie collection using omdbapi.com</br>
+			Liked it? Share it!
+			<div class="fb-share-button" data-href="http://ingag.in/" data-type="button_count"></div>
+			<a href="http://ingag.in" class="twitter-share-button" data-via="twitterapi" data-lang="en">Tweet</a>
+			<!-- G+ Share Button -->
+			<div class="g-plusone" data-size="tall" data-annotation="inline" data-width="300"></div>
+			<script type="text/javascript">
+				(function () {
+					var po = document.createElement('script');
+					po.type = 'text/javascript';
+					po.async = true;
+					po.src = 'https://apis.google.com/js/platform.js';
+					var s = document.getElementsByTagName('script')[0];
+					s.parentNode.insertBefore(po, s);
+				})();
+			</script>
+		</div>
+		</br>
+		</br>
+		<input title="Choose a movie folder" type="file" class="custom-file-input" id="file_input" onchange="pathvalue(event)" webkitdirectory="" directory="" mozdirectory="">
+		</br>
+		<div id="loading"></div>
+		<div class="error" id="errorMessage"></div>
+		<div class="list" id="movieList" display="none"></div>
+		<div class="list" id="GenreList" display="none"></div>
+		<div class="list" id="ActorsList" display="none"></div>
+		<div class="list" id="DirectorList" display="none"></div>
+		<div class="info" id="infoMessage"></div>
+	</center>
+</body>
+
+</html>
