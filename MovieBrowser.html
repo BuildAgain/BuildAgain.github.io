@@ -212,6 +212,7 @@
 			getMovieName(file.webkitRelativePath);
 		}
 		
+		movieFailCount = Object.keys(movieFail).length;
 		noOfFiles = Object.keys(MovieDetails).length + movieFailCount;
 		
 		// If no movies were identified then display the message and return
@@ -431,7 +432,6 @@
 		var omdbData = http.responseText;
 		var omdbJSON = eval("(" + omdbData + ")");
 		if (omdbJSON.Response == "False" && omdbJSON.Title === undefined) {
-			movieFailCount = movieFailCount + 1;
 			return "False";
 		} else if (!(omdbJSON.Title in MovieDetails) && !(isNaN(omdbJSON.imdbRating))) {
 			MovieDetails[omdbJSON.Title] = new Array(
