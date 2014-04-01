@@ -159,7 +159,11 @@
 	var movieFailCount;
 	var noOfFiles;
 	var movieFail;
-	var FileNameProcessed;
+	var resRegEx = /(720p|1080p|x264)/;
+	var fileSizeRegEx = /([1-9]00MB)/;
+	var fileTypeRegEx = /(([dD][vV][dD]|[bB][rR]|[wW][eE][bB])[rR][iI][pP]|[bB][lL][uU][rR][aA][yY]|[dD][vV][dD][rR])/;
+	var yearRegEx = /([\[\(\{\. ][12][0-9][0-9][0-9][\]\)\}\. ])/;
+	var nonPermittedExtensionRegEx = /(pdf|txt|zip|rar|srt|nfo|exe|mp3|jpg|jpeg|gif|html|ini|inf|dll|dat|rtf|doc)/i;
 
 	// Expand collapse a list
 	function expandCollapse(e) {
@@ -181,17 +185,6 @@
 		//$("#loading").hide();
 	}
 
-	// Check if a "*/folder" or "file" was processed.
-	function fileNameProcessed(fileName) {
-		var temp;
-		for (temp in FileNameProcessed) {
-			if (fileName.indexOf(temp) == 0) {
-				return "True";
-			}
-		}
-		return "False";
-	}
-
 	function pathvalue(e) {
 		// Reset screen
 		clearScreen();
@@ -206,7 +199,6 @@
 		DirectorMovieMapping = {};
 		movieFail = {};
 		movieFailCount = 0;
-		FileNameProcessed = {};
 		
 		// Chrome returns all files in the directory and sub-directories. Can hang the browser if there are too many files.
 		var files = e.target.files;
@@ -217,11 +209,11 @@
 		for (var i = 0, file; i < files.length; i++) {
 			file = files[i];
 			// If its a folder then just process "*/folder/." and ignore the rest of the files in the folder.
-			if (fileNameProcessed(file.webkitRelativePath) == "False") {
-				getMovieName(file.webkitRelativePath);
-			}
+			getMovieName(file.webkitRelativePath);
 		}
-		noOfFiles = Object.keys(FileNameProcessed).length;
+		
+		noOfFiles = Object.keys(MovieDetails).length + movieFailCount;
+		
 		// If no movies were identified then display the message and return
 		if (Object.keys(MovieDetails).length <= 0 && noOfFiles != 0) {
 			if (movieFailCount != 0) {
@@ -324,12 +316,16 @@
 	// Determine movie name and process
 	function getMovieName(fileName) {
 		var res = fileName.split("/");
-		// Chrome file list is of the form:
-		// Case 1: MovieFolder/. 						(when a Drive is selected OR when there is a single folder in the parentFolder)
-		// Case 2: parentFolder/MovieFolder/. 			(when parentFolder is selected)
-		// Case 3: MovieFileName.extension 				(when a Drive is selected)
-		// Case 4: parentFolder/MovieFileName.extension	(when parentFolder is selected)
-		// Add to FileNameProcessed to dictionary
+		var last = res.length;
+		
+		/*OLDER LOGIC:
+		Chrome file list is of the form:
+		Case 1: MovieFolder/. 						(when a Drive is selected OR when there is a single folder in the parentFolder)
+		Case 2: parentFolder/MovieFolder/. 			(when parentFolder is selected)
+		Case 3: MovieFileName.extension 				(when a Drive is selected)
+		Case 4: parentFolder/MovieFileName.extension	(when parentFolder is selected)
+		Add to FileNameProcessed to dictionary
+				
 		if (res[1] == "." && res[2] === undefined) {
 			if (res[0].toUpperCase() == "$RECYCLE.BIN" || res[0].toUpperCase() == "SYSTEM VOLUME INFORMATION") {
 				return;
@@ -346,6 +342,27 @@
 			processMovieName(res[1].slice(0, res[1].lastIndexOf(".")));
 			FileNameProcessed[res[0] + "/" + res[1]] = "";
 		}
+		*/
+		
+		/* NEW LOGIC
+		Chrome file list is of the form:
+		Case 1: MovieFileName.extension 				(when a Drive is selected)
+		Case 2: rootFolder/.../MovieFileName.extension	(when rootFolder is selected)
+		Case others: ignore!
+		Add to FileNameProcessed to dictionary
+		*/
+		
+		if (res[last - 1] != ".") {
+
+			if (res[last - 1].toUpperCase() == "$RECYCLE.BIN" || res[last - 1].toUpperCase() == "SYSTEM VOLUME INFORMATION") {
+				return;
+			}
+			if (res[last - 1].search(nonPermittedExtensionRegEx) != -1){
+				return;
+			} else {
+				processMovieName(res[last - 1].slice(0, res[last - 1].lastIndexOf(".")));
+			}
+		}
 	}
 
 	// Extract the movie name
@@ -356,31 +373,27 @@
 		// DVD BR WEB RIP BLURAY DVDr
 		// (YYYY)
 		// Get leftmost index and ignore the rest of the text.
-		
+
 		var fileName = movieName;
-		var res = /(720p|1080p|x264)/;
-		var fileSize = /([1-9]00MB)/;
-		var fileType = /(([dD][vV][dD]|[bB][rR]|[wW][eE][bB])[rR][iI][pP]|[bB][lL][uU][rR][aA][yY]|[dD][vV][dD][rR])/;
-		var year = /([\[\(\{\. ][12][0-9][0-9][0-9][\]\)\}\. ])/;
 		var others;
 		var leftMostIndex = 999;
 		var temp = 999;
-		temp = movieName.search(res);
+		temp = movieName.search(resRegEx);
 		if (temp != -1 && temp < leftMostIndex) {
 			leftMostIndex = temp;
 			temp = 999;
 		}
-		temp = movieName.search(fileSize);
+		temp = movieName.search(fileSizeRegEx);
 		if (temp != -1 && temp < leftMostIndex) {
 			leftMostIndex = temp;
 			temp = 999;
 		}
-		temp = movieName.search(fileType);
+		temp = movieName.search(fileTypeRegEx);
 		if (temp != -1 && temp < leftMostIndex) {
 			leftMostIndex = temp;
 			temp = 999;
 		}
-		temp = movieName.search(year);
+		temp = movieName.search(yearRegEx);
 		if (temp != -1 && temp < leftMostIndex) {
 			leftMostIndex = temp;
 			temp = 999;
@@ -395,10 +408,14 @@
 		// Some movie name are of the form - Up.In.The.Air
 		movieName = movieName.split(".").join(" ")
 		movieName = movieName.trim();
-		// If IMDB data fails with "." removal then try with it (as in the case of L.A. Confedential)
-		if (getIMDBData(movieName) == "False") {
-			if (getIMDBData(withPeriodsMovieName) == "False") {
-				movieFail[fileName] = "";
+		
+		// Check if this movie is already in the MovieDetails list
+		if (!(movieName in MovieDetails) && !(withPeriodsMovieName in MovieDetails)) {
+			if (getIMDBData(movieName) == "False") {
+				// If IMDB data fails with "." removal then try with it (as in the case of L.A. Confedential)
+				if (getIMDBData(withPeriodsMovieName) == "False") {
+					movieFail[fileName] = "";
+				}
 			}
 		}
 	}
@@ -525,7 +542,7 @@
 		<div class="success" id="welcomeMessage">
 			Welcome to Movie Browser!</br>
 			Now browse your local drive movies based on IMDB Rating, Genre, Actors and Director.</br>
-			Select your movie folder, wait and it will do its best to recognize and categorize your movie collection using omdbapi.com</br>
+			Select your root movie folder, wait and it will do its best to recognize and categorize your movie collection using omdbapi.com</br>
 			Currently it works with Chrome only. </br>
 			Liked it? Share it! </br>
 			<div class="social">
