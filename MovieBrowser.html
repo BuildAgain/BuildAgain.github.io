@@ -457,28 +457,28 @@
 		var GenreList;
 		GenreList = MovieJSON.Genre.split(",");
 		for (i = 0; i < GenreList.length; i++) {
-			if (!(GenreList[i] in GenreMovieMapping)) {
-				GenreMovieMapping[GenreList[i]] = new Array(MovieJSON.Title);
+			if (!(GenreList[i].trim() in GenreMovieMapping)) {
+				GenreMovieMapping[GenreList[i].trim()] = new Array(MovieJSON.Title);
 			} else {
-				GenreMovieMapping[GenreList[i]].push(MovieJSON.Title);
+				GenreMovieMapping[GenreList[i].trim()].push(MovieJSON.Title);
 			}
 		}
 		var ActorsList;
 		ActorsList = MovieJSON.Actors.split(",");
 		for (i = 0; i < ActorsList.length; i++) {
-			if (!(ActorsList[i] in ActorsMovieMapping)) {
-				ActorsMovieMapping[ActorsList[i]] = new Array(MovieJSON.Title);
+			if (!(ActorsList[i].trim() in ActorsMovieMapping)) {
+				ActorsMovieMapping[ActorsList[i].trim()] = new Array(MovieJSON.Title);
 			} else {
-				ActorsMovieMapping[ActorsList[i]].push(MovieJSON.Title);
+				ActorsMovieMapping[ActorsList[i].trim()].push(MovieJSON.Title);
 			}
 		}
 		var DirectorList;
 		DirectorList = MovieJSON.Director.split(",");
 		for (i = 0; i < DirectorList.length; i++) {
-			if (!(DirectorList[i] in DirectorMovieMapping)) {
-				DirectorMovieMapping[DirectorList[i]] = new Array(MovieJSON.Title);
+			if (!(DirectorList[i].trim() in DirectorMovieMapping)) {
+				DirectorMovieMapping[DirectorList[i].trim()] = new Array(MovieJSON.Title);
 			} else {
-				DirectorMovieMapping[DirectorList[i]].push(MovieJSON.Title);
+				DirectorMovieMapping[DirectorList[i].trim()].push(MovieJSON.Title);
 			}
 		}
 	}
