@@ -1,0 +1,160 @@
+<html>
+<style>
+	.post-feed-container {
+		width: 460px;
+	}
+	
+	.post-feed-container img{
+		width: 460px;
+	}
+
+	.post-image-page-container {
+		width:600px;
+	}
+	
+	.post-image-page-container img{
+		width:600px;
+	}
+	
+	.play {
+		position: relative;
+		top: 50%;
+		margin-top: -30px;
+		left: 50%;
+		margin-left: -30px;
+		height: 60px;
+		width: 60px;
+		text-align: center;
+		overflow: hidden;
+		background: #222;
+		line-height: 58px;
+		font-size: 20px;
+		text-transform: uppercase;
+		color: #fff;
+		font-weight: bold;
+		border-radius: 35px;
+		opacity: .9;
+		border: 5px solid #fff;
+	}
+	
+</style>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
+</script>
+<script type="text/javascript">
+	function GIFPlay(element) {
+	
+		var imgSrc = String($(element).find("img").attr("src"));
+		if (imgSrc.slice(imgSrc.length - 3,imgSrc.length) == "gif") {
+			$(element).find("img").attr("src", imgSrc.slice(0, imgSrc.length - 3) + "jpg");
+		} else {
+			$(element).find("img").attr("src", imgSrc.slice(0, imgSrc.length - 3) + "gif");
+		}
+		
+	}
+</script>
+<body>
+	<h2>Static and GIF image rendering</h2>
+	<ul>FEED rendering 460px:
+	</br></br>
+		<li>JPG Image
+			<div class="post-feed-container">
+				<div class="post-title">
+				</div>
+				
+				<div class="post-img">
+					<img class="item-img" src="./NormalImage.jpg" alt="Subject of the img">
+				</div>
+				
+				<div class="post-share-buttons">
+				</div>
+				
+				<div class="post-comments">
+				</div>
+			</div>
+		</li>
+		<li>Small GIF Image
+			<div class="post-feed-container">
+				<div class="post-title">
+				</div>
+				
+				<div class="post-img" onclick="GIFPlay(this)">
+					<img class="item-img" src="./SmallGIF.jpg" alt="Subject of the img">
+				</div>
+				
+				<div class="post-share-buttons">
+				</div>
+				
+				<div class="post-comments">
+				</div>
+			</div>
+		</li>
+		<li>Large GIF Image
+			<div class="post-feed-container">
+				<div class="post-title">
+				</div>
+				
+				<div class="post-img" onclick="GIFPlay(this)">
+					<img class="item-img" src="./LargeGIF.jpg" alt="Subject of the img">
+				</div>
+				
+				<div class="post-share-buttons">
+				</div>
+				
+				<div class="post-comments">
+				</div>
+			</div>
+		</li>
+	</ul>
+	</br></br>
+	<ul>IMAGE PAGE rendering 600px:
+	</br></br>
+	<li>Large JPG IMAGE rendering page:
+		<div class="post-image-page-container">
+			<div class="post-title">
+			</div>
+			
+			<div class="post-img">
+				<img class="item-img" src="./NormalImage.jpg" alt="Subject of the img">
+			</div>
+			
+			<div class="post-share-buttons">
+			</div>
+			
+			<div class="post-comments">
+			</div>
+		</div>
+	</li>
+	<li>Small GIF IMAGE rendering page:
+		<div class="post-image-page-container">
+			<div class="post-title">
+			</div>
+			
+			<div class="post-img" onclick="GIFPlay(this)">
+				<img class="item-img" src="./SmallGIF.jpg" alt="Subject of the img">
+			</div>
+			
+			<div class="post-share-buttons">
+			</div>
+			
+			<div class="post-comments">
+			</div>
+		</div>
+	</li>
+	<li>Large GIF IMAGE rendering page:
+		<div class="post-image-page-container">
+			<div class="post-title">
+			</div>
+			
+			<div class="post-img" onclick="GIFPlay(this)">
+				<img class="item-img" src="./LargeGIF.jpg" alt="Subject of the img">
+			</div>
+			
+			<div class="post-share-buttons">
+			</div>
+			
+			<div class="post-comments">
+			</div>
+		</div>	
+	</li>
+</body>
+</html>
